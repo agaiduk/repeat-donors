@@ -1,4 +1,4 @@
-from libdonors import valid_name, valid_date, valid_zip, Donor, Recipient
+from libdonors import valid_name, valid_date, valid_zip, valid_float, Donor, Recipient
 
 
 data_fname = '../input/itcont.txt'
@@ -9,6 +9,7 @@ data_f = open(data_fname, 'r')
 percentile_f = open(percentile_fname, 'r')
 donors_f = open(donors_fname, 'w')
 
+# Read in percentile value and convert it to a fraction of 1 for future use
 percentile = float(percentile_f.readline()) / 100.
 
 donors = {}
@@ -37,9 +38,9 @@ while True:
     if not cmte_id:
         continue
 
-    transaction_amt = line[14]
-    if not transaction_amt:
+    if not valid_float(line[14]):
         continue
+    transaction_amt = float(line[14])
 
     # Process donor's name, zip code, and transaction date
     name = line[7]
@@ -64,16 +65,17 @@ while True:
         donors[donor].add_donation(year)
     else:
         # The known donor is not repeat: S/he only donated in the current or future year
-        if donors[donor].year_min >= year:
+        if donors[donor].year_min >= year:  # year_min is the first element of the heap inside Donor class
             donors[donor].add_donation(year)
         # Repeat donor
         else:
+            donors[donor].add_donation(year)
             recipient_zip_year = (cmte_id, zip_code, year)
             if recipients.get(recipient_zip_year) is None:
                 recipients[recipient_zip_year] = Recipient()
-            recipients[recipient_zip_year].add_donation(float(transaction_amt))
+            recipients[recipient_zip_year].add_donation(transaction_amt)
             percentile_value = recipients[recipient_zip_year].compute_percentile(percentile)
-            donors_f.write("{}|{}|{}|{}|{}|{}\n".format(cmte_id, zip_code, year, percentile_value, round(recipients[recipient_zip_year].donations_amount), recipients[recipient_zip_year].donations_number))
+            donors_f.write("{}|{}|{}|{}|{}|{}\n".format(cmte_id, zip_code, year, percentile_value, round(recipients[recipient_zip_year].total_amount), recipients[recipient_zip_year].total_donations))
 
 data_f.close()
 percentile_f.close()
