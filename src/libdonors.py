@@ -1,7 +1,24 @@
+import os
 import ciso8601
 import re
 import heapq
+import bisect
 from math import ceil
+
+
+def input_check(fname):
+    if os.path.isfile(fname) is False:
+        raise AssertionError("Input file {} does not exist".format(os.path.abspath(fname)))
+
+
+def output_check(fname):
+    fname_abspath = os.path.abspath(fname)
+    dirname = os.path.dirname(fname_abspath)
+    if os.path.isdir(dirname) is False:
+        raise AssertionError("Output directory {} does not exist".format(dirname))
+    if os.path.isfile(fname) is True:
+        print("File {} exist; overwriting.".format(fname_abspath))
+        open(fname_abspath, 'w').close()  # Erase existing output file - performance improvement
 
 
 # Checks that the name is not empty and that it doesn't contain special
@@ -23,7 +40,7 @@ def valid_int(string):
         return False
 
 
-# True a string is a positive float (more general than the integer, for donation amount)
+# True a string is a positive float (or a positive integer); for donations amount
 def valid_float(string):
     try:
         number = float(string)
@@ -53,7 +70,7 @@ class Donor:
 
     def __init__(self):
         self.years = []
-        self.year_min = 0
+        self.year_min = float("inf")
 
     def add_donation(self, year):
         heapq.heappush(self.years, year)
@@ -64,12 +81,12 @@ class Recipient:
 
     def __init__(self):
         self.donations = []
-        self.total_amount = 0.
+        self.total_donated = 0.
         self.total_donations = 0
 
     def add_donation(self, donation):
-        heapq.heappush(self.donations, donation)
-        self.total_amount += donation
+        bisect.insort(self.donations, donation)
+        self.total_donated += donation
         self.total_donations += 1
 
     def compute_percentile(self, percentile):
@@ -78,5 +95,4 @@ class Recipient:
         ordinal_rank = ceil(percentile_value)
         if ordinal_rank == 0:
             ordinal_rank = 1
-        self.donations.sort()
         return round(self.donations[ordinal_rank - 1])  # -1 to account for Python array numbering
